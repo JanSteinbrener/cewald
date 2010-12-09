@@ -1,4 +1,6 @@
 #include "cewald.h"
+#include <sys/stat.h>
+#include <errno.h>
 
 
 int main(int argc, char *argv[]) {
@@ -29,8 +31,10 @@ int main(int argc, char *argv[]) {
   }
 
   /* Output filename */
+  //strcpy(szDirname,"");
   pchar = strrchr(szScript,'/');
   strncpy(szDirname,szScript,pchar-szScript+1);
+  szDirname[pchar-szScript+1] = '\000';
   strcpy(szOutput,szDirname);
   strcpy(szOutput+(strlen(szDirname)),"cewald_output.h5");
 
@@ -111,8 +115,11 @@ int cewald_check_script(char *szScript,
   FILE *pfFile;
   int nNFiles=0;
   int nNHeaderLines=CEWALD_HEADER_LINES;
+  int count;
+  size_t tThisStrlen;
   char pszThisLine[CEWALD_MAX_STRLEN];
   char *psSubString;
+  struct stat st;
 
   if ((pfFile = fopen(szScript,"r")) == NULL) {
     sprintf(szErrorString,"[ERROR] cewald_check_script: Cannot open %s.",
@@ -125,9 +132,22 @@ int cewald_check_script(char *szScript,
     /* Extract filename, check access */ 
     psSubString = strrchr(pszThisLine,',');
     if (nNHeaderLines-- <= 0) {
-      if (access(psSubString+1, F_OK) == -1) {
-	printf("[WARNING] cewald_check_script: Cannot access %s",
-	       psSubString+1);
+      count=0;
+      psSubString++;
+      /* remove leading whitespace */ 
+      while (isspace(*psSubString)) psSubString++;
+      tThisStrlen = strlen(psSubString);
+
+      /* remove trailing whitespace */
+      psSubString+=tThisStrlen-1;
+      while (isspace(*psSubString)) {
+	*psSubString-- = '\000';
+	++count;
+      }
+      psSubString-=(tThisStrlen-count-1);
+      if (stat(psSubString, &st) == -1 && errno == ENOENT){
+	printf("[WARNING] cewald_check_script: Cannot access %s\n",
+	       psSubString);
       } else {
 	nNFiles++;
       }
@@ -315,13 +335,14 @@ int cewald_initialize_dataset(char *szScript,
   char *psPos;
   int nIName=0;
   int nNHeaderLines=CEWALD_HEADER_LINES;
-  
-
+  size_t tThisStrlen;
+  int count;
   hid_t hFileId;
   int nNX,nNY,nNZ, nErrorIsPresent;
   int nIDot;
   dm_adi_struct sThisAdiStruct;
   char szErrorString[CEWALD_MAX_STRLEN];
+  struct stat st;
 
 
   if ((pfFile = fopen(szScript,"r")) == NULL) {
@@ -354,9 +375,22 @@ int cewald_initialize_dataset(char *szScript,
     } else {
       /* Extract filenames and angles */ 
       psSubString = strrchr(pszThisLine,',');
-      if (access(psSubString+1, F_OK) != -1) {
+      count=0;
+      psSubString++;
+      /* remove leading whitespace */ 
+      while (isspace(*psSubString)) psSubString++;
+      tThisStrlen = strlen(psSubString);
+
+      /* remove trailing whitespace */
+      psSubString+=tThisStrlen-1;
+      while (isspace(*psSubString)) {
+	*psSubString-- = '\000';
+	++count;
+      }
+      psSubString-=(tThisStrlen-count-1);
+      if (stat(psSubString, &st) == 0 || errno != ENOENT) {
 	strcpy(psDataParams->paszFilenames+nIName*CEWALD_MAX_STRLEN,
-	       psSubString+1);
+	       psSubString);
 	psPos = strtok(pszThisLine,",");
 	*(psDataParams->padThetaXRadians+nIName) =
 	  atof(psPos);
@@ -366,13 +400,16 @@ int cewald_initialize_dataset(char *szScript,
 	psPos = strtok(NULL,",");
 	*(psDataParams->padThetaZRadians+nIName) =
 	  atof(psPos);
+	/* Assume files are pre-centered for now */
+	*(psDataParams->panXCenterOffset+nIName) = 0;
+	*(psDataParams->panYCenterOffset+nIName) = 0;
 	nIName++;
       }
     }
   }
   
   /* Get size from first array */
-  if (dm_h5_openread((psDataParams->paszFilenames+nIName*CEWALD_MAX_STRLEN),
+  if (dm_h5_openread(psDataParams->paszFilenames,
 		     &hFileId,szErrorString,nMyRank) 
       != DM_FILEIO_SUCCESS) {
     printf("%s\n",szErrorString);
@@ -394,80 +431,6 @@ int cewald_initialize_dataset(char *szScript,
   psDataParams->nNY = nNY;
   
 } 
-  
-  /*
-  nIDot = psDataParams->nNFiles/30;
-
-  for (nIName=0;nIName<psDataParams->nNFiles;nIName++) {
-#ifdef VERBOSE
-    if (nIName == 0) printf("Examining angles.\n");
-    if ((nIName%nIDot) == 0) {
-      printf(".");
-    }
-#endif
-
-    if (dm_h5_openread((psDataParams->paszFilenames+nIName*CEWALD_MAX_STRLEN),
-		       &hFileId,szErrorString,nMyRank) 
-	!= DM_FILEIO_SUCCESS) {
-      printf("%s\n",szErrorString);
-      exit(1);
-    }
-    
-    if (dm_h5_read_adi_info(hFileId,&nNX,&nNY,&nNZ,&nErrorIsPresent,
-			    &sThisAdiStruct,szErrorString,nMyRank) 
-	== DM_FILEIO_FAILURE) {
-      printf("Error reading \"/adi\" group info\n");
-      dm_h5_close(hFileId,nMyRank);
-      exit(1);
-    }
-    
-    /* Don't forget to release the identifier 
-    dm_h5_close(hFileId,nMyRank);
- 
-    *(psDataParams->padThetaXRadians+nIName) = 
-      (double)sThisAdiStruct.theta_x_radians; 
-    *(psDataParams->padThetaYRadians+nIName) = 
-      (double)sThisAdiStruct.theta_y_radians; 
-    *(psDataParams->padThetaZRadians+nIName) = 
-      (double)sThisAdiStruct.theta_z_radians; 
-    *(psDataParams->panXCenterOffset+nIName) = 
-      (int)sThisAdiStruct.xcenter_offset_pixels; 
-    *(psDataParams->panYCenterOffset+nIName) = 
-      (int)sThisAdiStruct.ycenter_offset_pixels; 
-    *(psDataParams->panPhotonScaling+nIName) = 
-      (int)sThisAdiStruct.photon_scaling; 
-  }
-  printf("\n\n");
-
-  /* Save other values that we only need once and that should be the same 
-   * for each 2D file.
-   
-  psDataParams->fLambdaMeters = sThisAdiStruct.lambda_meters;
-  if (sThisAdiStruct.camera_x_pixelsize_meters == 0) {
-    psDataParams->fCCDPixelSizeMeters = 20.e-6;
-    printf("[WARNING]: Using default %e as pixel size!\n",
-	   psDataParams->fCCDPixelSizeMeters);
-  } else {
-    psDataParams->fCCDPixelSizeMeters = 
-      sThisAdiStruct.camera_x_pixelsize_meters;
-  }
-  if (sThisAdiStruct.camera_z_meters == 0) {
-    psDataParams->fCCDZMeters = 0.128;
-    printf("[WARNING]: Using default %f as CCD z distance!\n",
-	   psDataParams->fCCDZMeters);
-  } else {
-    psDataParams->fCCDZMeters = 
-      sThisAdiStruct.camera_z_meters;
-  }
- 
-  /* Check here if some values are not given!! 
-
-  /* save info on INITIAL 2D array size 
-  psDataParams->nNX = nNX;
-  psDataParams->nNY = nNY;
-  
-  return(0); 
-  } */
 
 /*-------------------------------------------------------------------------*/
 void cewald_erase_strarr(char *paszStrarr, int nNLines) {
@@ -780,6 +743,10 @@ void cewald_write_h5(Parameters *psDataParams,
 		   sAinfo.string_length);
   sAinfo.theta_x_radians_array = 
     (double *)malloc(sAinfo.n_frames_max*sizeof(double));
+  sAinfo.theta_y_radians_array = 
+    (double *)malloc(sAinfo.n_frames_max*sizeof(double));
+  sAinfo.theta_z_radians_array = 
+    (double *)malloc(sAinfo.n_frames_max*sizeof(double));
   sAinfo.xcenter_offset_pixels_array = 
     (double *)malloc(sAinfo.n_frames_max*sizeof(double));
   sAinfo.ycenter_offset_pixels_array = 
@@ -880,6 +847,8 @@ void cewald_write_h5(Parameters *psDataParams,
   free(sAinfo.file_directory);
   free(sAinfo.systime_array);
   free(sAinfo.theta_x_radians_array);
+  free(sAinfo.theta_y_radians_array);
+  free(sAinfo.theta_z_radians_array);
   free(sAinfo.xcenter_offset_pixels_array);
   free(sAinfo.ycenter_offset_pixels_array);
 
@@ -887,4 +856,8 @@ void cewald_write_h5(Parameters *psDataParams,
   free(sComments.string_array);
   free(sComments.specimen_name);
   free(sComments.collection_date);
+
+ #ifdef VERBOSE
+  printf("Wrote %s.\n",szOutput);
+ #endif
 }
