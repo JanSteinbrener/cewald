@@ -132,24 +132,26 @@ int cewald_check_script(char *szScript,
     /* Extract filename, check access */ 
     psSubString = strrchr(pszThisLine,',');
     if (nNHeaderLines-- <= 0) {
-      count=0;
-      psSubString++;
-      /* remove leading whitespace */ 
-      while (isspace(*psSubString)) psSubString++;
-      tThisStrlen = strlen(psSubString);
-
-      /* remove trailing whitespace */
-      psSubString+=tThisStrlen-1;
-      while (isspace(*psSubString)) {
-	*psSubString-- = '\000';
-	++count;
-      }
-      psSubString-=(tThisStrlen-count-1);
-      if (stat(psSubString, &st) == -1 && errno == ENOENT){
-	printf("[WARNING] cewald_check_script: Cannot access %s\n",
-	       psSubString);
-      } else {
-	nNFiles++;
+      if (psSubString != NULL) {
+	count=0;
+	psSubString++;
+	/* remove leading whitespace */ 
+	while (isspace(*psSubString)) psSubString++;
+	tThisStrlen = strlen(psSubString);
+	
+	/* remove trailing whitespace */
+	psSubString+=tThisStrlen-1;
+	while (isspace(*psSubString)) {
+	  *psSubString-- = '\000';
+	  ++count;
+	}
+	psSubString-=(tThisStrlen-count-1);
+	if (stat(psSubString, &st) == -1 && errno == ENOENT){
+	  printf("[WARNING] cewald_check_script: Cannot access %s\n",
+		 psSubString);
+	} else {
+	  nNFiles++;
+	}
       }
     }
   }
@@ -375,35 +377,37 @@ int cewald_initialize_dataset(char *szScript,
     } else {
       /* Extract filenames and angles */ 
       psSubString = strrchr(pszThisLine,',');
-      count=0;
-      psSubString++;
-      /* remove leading whitespace */ 
-      while (isspace(*psSubString)) psSubString++;
-      tThisStrlen = strlen(psSubString);
-
-      /* remove trailing whitespace */
-      psSubString+=tThisStrlen-1;
-      while (isspace(*psSubString)) {
-	*psSubString-- = '\000';
-	++count;
-      }
-      psSubString-=(tThisStrlen-count-1);
-      if (stat(psSubString, &st) == 0 || errno != ENOENT) {
-	strcpy(psDataParams->paszFilenames+nIName*CEWALD_MAX_STRLEN,
-	       psSubString);
-	psPos = strtok(pszThisLine,",");
-	*(psDataParams->padThetaXRadians+nIName) =
-	  atof(psPos);
-	psPos = strtok(NULL,",");
-	*(psDataParams->padThetaYRadians+nIName) =
-	  atof(psPos);
-	psPos = strtok(NULL,",");
-	*(psDataParams->padThetaZRadians+nIName) =
-	  atof(psPos);
-	/* Assume files are pre-centered for now */
-	*(psDataParams->panXCenterOffset+nIName) = 0;
-	*(psDataParams->panYCenterOffset+nIName) = 0;
-	nIName++;
+      if (psSubString != NULL) {
+	count=0;
+	psSubString++;
+	/* remove leading whitespace */ 
+	while (isspace(*psSubString)) psSubString++;
+	tThisStrlen = strlen(psSubString);
+	
+	/* remove trailing whitespace */
+	psSubString+=tThisStrlen-1;
+	while (isspace(*psSubString)) {
+	  *psSubString-- = '\000';
+	  ++count;
+	}
+	psSubString-=(tThisStrlen-count-1);
+	if (stat(psSubString, &st) == 0 || errno != ENOENT) {
+	  strcpy(psDataParams->paszFilenames+nIName*CEWALD_MAX_STRLEN,
+		 psSubString);
+	  psPos = strtok(pszThisLine,",");
+	  *(psDataParams->padThetaXRadians+nIName) =
+	    atof(psPos);
+	  psPos = strtok(NULL,",");
+	  *(psDataParams->padThetaYRadians+nIName) =
+	    atof(psPos);
+	  psPos = strtok(NULL,",");
+	  *(psDataParams->padThetaZRadians+nIName) =
+	    atof(psPos);
+	  /* Assume files are pre-centered for now */
+	  *(psDataParams->panXCenterOffset+nIName) = 0;
+	  *(psDataParams->panYCenterOffset+nIName) = 0;
+	  nIName++;
+	}
       }
     }
   }
