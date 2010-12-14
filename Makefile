@@ -88,8 +88,8 @@ else # for machines of different OSs
 	FFT_OBJS = 
 
 	#define HDF5 libs and dirs
-	HDF5_INCLUDE_DIR = -I/lfs/l3/extern/jsteinb/SOFTWARE/hdf5/include/
-	HDF5_LIB_DIR = -L/lfs/l3/extern/jsteinb/SOFTWARE/hdf5/lib/
+	HDF5_INCLUDE_DIR = -I/home/jsteinb/hdf5/include/
+	HDF5_LIB_DIR = -L/home/jsteinb/hdf5/lib/
 	HDF5_DEFINES = 
 	HDF5_LIB = -lhdf5
 
