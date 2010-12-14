@@ -620,15 +620,17 @@ void cewald_ewald_n_rotate(dm_array_real_struct *psThisAdi,
 	     (double)(psDataParams->fCCDZMeters * 
 		      psDataParams->fCCDZMeters));
       
-      dConstant = (double)psDataParams->fCCDZMeters/
-	(double)psDataParams->fCCDPixelSizeMeters;
+      dConstant = 
+	sqrt((double)(psDataParams->fCCDZMeters*psDataParams->fCCDZMeters) + 
+	     0.25*((double)(psDataParams->nNX*psDataParams->nNX) *
+		   (double)(psDataParams->fCCDPixelSizeMeters*
+			    psDataParams->fCCDPixelSizeMeters)));
       
       /* Map each pixel onto Ewald sphere */
-      daIQ[0] = dConstant*nQIX*
-	(double)psDataParams->fCCDPixelSizeMeters/dDenominator;
-      daIQ[1] = dConstant*nQIY*
-	(double)psDataParams->fCCDPixelSizeMeters/dDenominator;
-      daIQ[2] = dConstant*((double)psDataParams->fCCDZMeters/dDenominator - 1);
+      daIQ[0] = (double)(nQIX)*dConstant / dDenominator; 
+      daIQ[1] = (double)(nQIY)*dConstant / dDenominator; 
+      daIQ[2] = dConstant / (double)(psDataParams->fCCDPixelSizeMeters) * 
+	((double)(psDataParams->fCCDZMeters) / dDenominator - 1.0);
 
       /* Rotate this vector to find final position. Note that X,Y,Z correspond 
        * to the Euler angles Phi,Theta,Psi in the x-convention. 
