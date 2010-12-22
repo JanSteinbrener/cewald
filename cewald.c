@@ -450,9 +450,9 @@ void cewald_erase_strarr(char *paszStrarr, int nNLines) {
 /*-------------------------------------------------------------------------*/
 void cewald_rotate_vector(double *padOld3DVector, 
 			  int *panNew3DVector, 
-			  double dPhi,
+			  double dPsi,
 			  double dTheta, 
-			  double dPsi) 
+			  double dPhi) 
 {  
   int nNewY, nNewZ;
   double dOldX, dOldY, dOldZ;
@@ -464,21 +464,20 @@ void cewald_rotate_vector(double *padOld3DVector,
   *(panNew3DVector + 0) = 
     dm_round((dm_array_real)
 	     ((cos(dPsi)*cos(dPhi)-sin(dPsi)*cos(dTheta)*sin(dPhi))*dOldX +
-	      (cos(dPsi)*sin(dPhi)+sin(dPsi)*cos(dTheta)*cos(dPhi))*dOldY +
-	      (sin(dPsi)*sin(dTheta))*dOldZ));
+	      (sin(dPsi)*cos(dPhi)+cos(dPsi)*cos(dTheta)*sin(dPhi))*dOldY +
+	      (sin(dPhi)*sin(dTheta))*dOldZ));
 
   *(panNew3DVector + 1) = 
     dm_round((dm_array_real)
-	     ((-sin(dPsi)*cos(dPhi)-cos(dPsi)*cos(dTheta)*sin(dPhi))*dOldX +
-	      (-sin(dPsi)*sin(dPhi)+cos(dPsi)*cos(dTheta)*cos(dPhi))*dOldY +
-	      (cos(dPsi)*sin(dTheta))*dOldZ));
-
+	     (-(cos(dPsi)*sin(dPhi)+sin(dPsi)*cos(dTheta)*cos(dPhi))*dOldX +
+	      (cos(dPsi)*cos(dTheta)*cos(dPhi)-sin(dPsi)*sin(dPhi))*dOldY +
+	      (sin(dTheta)*cos(dPhi))*dOldZ));    
+	     
   *(panNew3DVector + 2) = 
     dm_round((dm_array_real)
-	     ((sin(dTheta)*sin(dPhi))*dOldX +
-	      (-sin(dTheta)*cos(dPhi))*dOldY +
+	     ((sin(dTheta)*sin(dPsi))*dOldX -
+	      (cos(dPsi)*sin(dTheta))*dOldY +
 	      (cos(dTheta))*dOldZ));
-
 }
 
 /*-------------------------------------------------------------------------*/
