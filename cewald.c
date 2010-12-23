@@ -450,9 +450,9 @@ void cewald_erase_strarr(char *paszStrarr, int nNLines) {
 /*-------------------------------------------------------------------------*/
 void cewald_rotate_vector(double *padOld3DVector, 
 			  int *panNew3DVector, 
-			  double dPsi,
+			  double dPhi,
 			  double dTheta, 
-			  double dPhi) 
+			  double dPsi) 
 {  
   int nNewY, nNewZ;
   double dOldX, dOldY, dOldZ;
